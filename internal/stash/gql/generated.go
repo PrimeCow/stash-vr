@@ -473,6 +473,129 @@ func (v *FindFilterType) GetQ() *string { return v.Q }
 // GetSort returns FindFilterType.Sort, and is useful for accessing the field via an interface.
 func (v *FindFilterType) GetSort() *string { return v.Sort }
 
+// FindMarkersFindSceneMarkersFindSceneMarkersResultType includes the requested fields of the GraphQL type FindSceneMarkersResultType.
+type FindMarkersFindSceneMarkersFindSceneMarkersResultType struct {
+	Scene_markers []*FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker `json:"scene_markers"`
+}
+
+// GetScene_markers returns FindMarkersFindSceneMarkersFindSceneMarkersResultType.Scene_markers, and is useful for accessing the field via an interface.
+func (v *FindMarkersFindSceneMarkersFindSceneMarkersResultType) GetScene_markers() []*FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker {
+	return v.Scene_markers
+}
+
+// FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker includes the requested fields of the GraphQL type SceneMarker.
+type FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker struct {
+	MarkerParts `json:"-"`
+}
+
+// GetId returns FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker.Id, and is useful for accessing the field via an interface.
+func (v *FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker) GetId() string {
+	return v.MarkerParts.Id
+}
+
+// GetSeconds returns FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker.Seconds, and is useful for accessing the field via an interface.
+func (v *FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker) GetSeconds() float64 {
+	return v.MarkerParts.Seconds
+}
+
+// GetTitle returns FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker.Title, and is useful for accessing the field via an interface.
+func (v *FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker) GetTitle() string {
+	return v.MarkerParts.Title
+}
+
+// GetStream returns FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker.Stream, and is useful for accessing the field via an interface.
+func (v *FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker) GetStream() string {
+	return v.MarkerParts.Stream
+}
+
+// GetScreenshot returns FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker.Screenshot, and is useful for accessing the field via an interface.
+func (v *FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker) GetScreenshot() string {
+	return v.MarkerParts.Screenshot
+}
+
+// GetPrimary_tag returns FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker.Primary_tag, and is useful for accessing the field via an interface.
+func (v *FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker) GetPrimary_tag() *MarkerPartsPrimary_tagTag {
+	return v.MarkerParts.Primary_tag
+}
+
+// GetScene returns FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker.Scene, and is useful for accessing the field via an interface.
+func (v *FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker) GetScene() *MarkerPartsScene {
+	return v.MarkerParts.Scene
+}
+
+func (v *FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.MarkerParts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalFindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker struct {
+	Id string `json:"id"`
+
+	Seconds float64 `json:"seconds"`
+
+	Title string `json:"title"`
+
+	Stream string `json:"stream"`
+
+	Screenshot string `json:"screenshot"`
+
+	Primary_tag *MarkerPartsPrimary_tagTag `json:"primary_tag"`
+
+	Scene *MarkerPartsScene `json:"scene"`
+}
+
+func (v *FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *FindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker) __premarshalJSON() (*__premarshalFindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker, error) {
+	var retval __premarshalFindMarkersFindSceneMarkersFindSceneMarkersResultTypeScene_markersSceneMarker
+
+	retval.Id = v.MarkerParts.Id
+	retval.Seconds = v.MarkerParts.Seconds
+	retval.Title = v.MarkerParts.Title
+	retval.Stream = v.MarkerParts.Stream
+	retval.Screenshot = v.MarkerParts.Screenshot
+	retval.Primary_tag = v.MarkerParts.Primary_tag
+	retval.Scene = v.MarkerParts.Scene
+	return &retval, nil
+}
+
+// FindMarkersResponse is returned by FindMarkers on success.
+type FindMarkersResponse struct {
+	// A function which queries SceneMarker objects
+	FindSceneMarkers *FindMarkersFindSceneMarkersFindSceneMarkersResultType `json:"findSceneMarkers"`
+}
+
+// GetFindSceneMarkers returns FindMarkersResponse.FindSceneMarkers, and is useful for accessing the field via an interface.
+func (v *FindMarkersResponse) GetFindSceneMarkers() *FindMarkersFindSceneMarkersFindSceneMarkersResultType {
+	return v.FindSceneMarkers
+}
+
 // FindPerformerByNameFindPerformersFindPerformersResultType includes the requested fields of the GraphQL type FindPerformersResultType.
 type FindPerformerByNameFindPerformersFindPerformersResultType struct {
 	Performers []*FindPerformerByNameFindPerformersFindPerformersResultTypePerformersPerformer `json:"performers"`
@@ -543,6 +666,102 @@ type FindSampleSceneCoverResponse struct {
 // GetFindScenes returns FindSampleSceneCoverResponse.FindScenes, and is useful for accessing the field via an interface.
 func (v *FindSampleSceneCoverResponse) GetFindScenes() *FindSampleSceneCoverFindScenesFindScenesResultType {
 	return v.FindScenes
+}
+
+// FindSavedMarkerFiltersFindSavedFiltersSavedFilter includes the requested fields of the GraphQL type SavedFilter.
+type FindSavedMarkerFiltersFindSavedFiltersSavedFilter struct {
+	SavedFilterParts `json:"-"`
+}
+
+// GetId returns FindSavedMarkerFiltersFindSavedFiltersSavedFilter.Id, and is useful for accessing the field via an interface.
+func (v *FindSavedMarkerFiltersFindSavedFiltersSavedFilter) GetId() string {
+	return v.SavedFilterParts.Id
+}
+
+// GetName returns FindSavedMarkerFiltersFindSavedFiltersSavedFilter.Name, and is useful for accessing the field via an interface.
+func (v *FindSavedMarkerFiltersFindSavedFiltersSavedFilter) GetName() string {
+	return v.SavedFilterParts.Name
+}
+
+// GetMode returns FindSavedMarkerFiltersFindSavedFiltersSavedFilter.Mode, and is useful for accessing the field via an interface.
+func (v *FindSavedMarkerFiltersFindSavedFiltersSavedFilter) GetMode() FilterMode {
+	return v.SavedFilterParts.Mode
+}
+
+// GetFind_filter returns FindSavedMarkerFiltersFindSavedFiltersSavedFilter.Find_filter, and is useful for accessing the field via an interface.
+func (v *FindSavedMarkerFiltersFindSavedFiltersSavedFilter) GetFind_filter() *SavedFilterPartsFind_filterSavedFindFilterType {
+	return v.SavedFilterParts.Find_filter
+}
+
+// GetObject_filter returns FindSavedMarkerFiltersFindSavedFiltersSavedFilter.Object_filter, and is useful for accessing the field via an interface.
+func (v *FindSavedMarkerFiltersFindSavedFiltersSavedFilter) GetObject_filter() *map[string]interface{} {
+	return v.SavedFilterParts.Object_filter
+}
+
+func (v *FindSavedMarkerFiltersFindSavedFiltersSavedFilter) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*FindSavedMarkerFiltersFindSavedFiltersSavedFilter
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.FindSavedMarkerFiltersFindSavedFiltersSavedFilter = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.SavedFilterParts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalFindSavedMarkerFiltersFindSavedFiltersSavedFilter struct {
+	Id string `json:"id"`
+
+	Name string `json:"name"`
+
+	Mode FilterMode `json:"mode"`
+
+	Find_filter *SavedFilterPartsFind_filterSavedFindFilterType `json:"find_filter"`
+
+	Object_filter *map[string]interface{} `json:"object_filter"`
+}
+
+func (v *FindSavedMarkerFiltersFindSavedFiltersSavedFilter) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *FindSavedMarkerFiltersFindSavedFiltersSavedFilter) __premarshalJSON() (*__premarshalFindSavedMarkerFiltersFindSavedFiltersSavedFilter, error) {
+	var retval __premarshalFindSavedMarkerFiltersFindSavedFiltersSavedFilter
+
+	retval.Id = v.SavedFilterParts.Id
+	retval.Name = v.SavedFilterParts.Name
+	retval.Mode = v.SavedFilterParts.Mode
+	retval.Find_filter = v.SavedFilterParts.Find_filter
+	retval.Object_filter = v.SavedFilterParts.Object_filter
+	return &retval, nil
+}
+
+// FindSavedMarkerFiltersResponse is returned by FindSavedMarkerFilters on success.
+type FindSavedMarkerFiltersResponse struct {
+	FindSavedFilters []*FindSavedMarkerFiltersFindSavedFiltersSavedFilter `json:"findSavedFilters"`
+}
+
+// GetFindSavedFilters returns FindSavedMarkerFiltersResponse.FindSavedFilters, and is useful for accessing the field via an interface.
+func (v *FindSavedMarkerFiltersResponse) GetFindSavedFilters() []*FindSavedMarkerFiltersFindSavedFiltersSavedFilter {
+	return v.FindSavedFilters
 }
 
 // FindSavedSceneFiltersFindSavedFiltersSavedFilter includes the requested fields of the GraphQL type SavedFilter.
@@ -1917,6 +2136,57 @@ type IsSceneOrganizedResponse struct {
 
 // GetFindScene returns IsSceneOrganizedResponse.FindScene, and is useful for accessing the field via an interface.
 func (v *IsSceneOrganizedResponse) GetFindScene() *IsSceneOrganizedFindScene { return v.FindScene }
+
+// MarkerParts includes the GraphQL fields of SceneMarker requested by the fragment MarkerParts.
+type MarkerParts struct {
+	Id string `json:"id"`
+	// The required start time of the marker (in seconds). Supports decimals.
+	Seconds float64 `json:"seconds"`
+	Title   string  `json:"title"`
+	// The path to stream this marker
+	Stream string `json:"stream"`
+	// The path to the screenshot image for this marker
+	Screenshot  string                     `json:"screenshot"`
+	Primary_tag *MarkerPartsPrimary_tagTag `json:"primary_tag"`
+	Scene       *MarkerPartsScene          `json:"scene"`
+}
+
+// GetId returns MarkerParts.Id, and is useful for accessing the field via an interface.
+func (v *MarkerParts) GetId() string { return v.Id }
+
+// GetSeconds returns MarkerParts.Seconds, and is useful for accessing the field via an interface.
+func (v *MarkerParts) GetSeconds() float64 { return v.Seconds }
+
+// GetTitle returns MarkerParts.Title, and is useful for accessing the field via an interface.
+func (v *MarkerParts) GetTitle() string { return v.Title }
+
+// GetStream returns MarkerParts.Stream, and is useful for accessing the field via an interface.
+func (v *MarkerParts) GetStream() string { return v.Stream }
+
+// GetScreenshot returns MarkerParts.Screenshot, and is useful for accessing the field via an interface.
+func (v *MarkerParts) GetScreenshot() string { return v.Screenshot }
+
+// GetPrimary_tag returns MarkerParts.Primary_tag, and is useful for accessing the field via an interface.
+func (v *MarkerParts) GetPrimary_tag() *MarkerPartsPrimary_tagTag { return v.Primary_tag }
+
+// GetScene returns MarkerParts.Scene, and is useful for accessing the field via an interface.
+func (v *MarkerParts) GetScene() *MarkerPartsScene { return v.Scene }
+
+// MarkerPartsPrimary_tagTag includes the requested fields of the GraphQL type Tag.
+type MarkerPartsPrimary_tagTag struct {
+	Name string `json:"name"`
+}
+
+// GetName returns MarkerPartsPrimary_tagTag.Name, and is useful for accessing the field via an interface.
+func (v *MarkerPartsPrimary_tagTag) GetName() string { return v.Name }
+
+// MarkerPartsScene includes the requested fields of the GraphQL type Scene.
+type MarkerPartsScene struct {
+	Id string `json:"id"`
+}
+
+// GetId returns MarkerPartsScene.Id, and is useful for accessing the field via an interface.
+func (v *MarkerPartsScene) GetId() string { return v.Id }
 
 type MovieFilterType struct {
 	AND *MovieFilterType `json:"AND,omitempty"`
@@ -4014,6 +4284,22 @@ func (v *VideoFileFilterInput) GetResolution() *ResolutionCriterionInput { retur
 // GetVideo_codec returns VideoFileFilterInput.Video_codec, and is useful for accessing the field via an interface.
 func (v *VideoFileFilterInput) GetVideo_codec() *StringCriterionInput { return v.Video_codec }
 
+// __FindMarkersInput is used internally by genqlient
+type __FindMarkersInput struct {
+	Ids           []string               `json:"ids"`
+	Marker_filter *SceneMarkerFilterType `json:"marker_filter,omitempty"`
+	FilterOpts    *FindFilterType        `json:"filterOpts,omitempty"`
+}
+
+// GetIds returns __FindMarkersInput.Ids, and is useful for accessing the field via an interface.
+func (v *__FindMarkersInput) GetIds() []string { return v.Ids }
+
+// GetMarker_filter returns __FindMarkersInput.Marker_filter, and is useful for accessing the field via an interface.
+func (v *__FindMarkersInput) GetMarker_filter() *SceneMarkerFilterType { return v.Marker_filter }
+
+// GetFilterOpts returns __FindMarkersInput.FilterOpts, and is useful for accessing the field via an interface.
+func (v *__FindMarkersInput) GetFilterOpts() *FindFilterType { return v.FilterOpts }
+
 // __FindPerformerByNameInput is used internally by genqlient
 type __FindPerformerByNameInput struct {
 	Name string `json:"name"`
@@ -4358,6 +4644,59 @@ func FindCredentials(
 	return data_, err_
 }
 
+// The query executed by FindMarkers.
+const FindMarkers_Operation = `
+query FindMarkers ($ids: [ID!], $marker_filter: SceneMarkerFilterType, $filterOpts: FindFilterType) {
+	findSceneMarkers(ids: $ids, scene_marker_filter: $marker_filter, filter: $filterOpts) {
+		scene_markers {
+			... MarkerParts
+		}
+	}
+}
+fragment MarkerParts on SceneMarker {
+	id
+	seconds
+	title
+	stream
+	screenshot
+	primary_tag {
+		name
+	}
+	scene {
+		id
+	}
+}
+`
+
+func FindMarkers(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	ids []string,
+	marker_filter *SceneMarkerFilterType,
+	filterOpts *FindFilterType,
+) (data_ *FindMarkersResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "FindMarkers",
+		Query:  FindMarkers_Operation,
+		Variables: &__FindMarkersInput{
+			Ids:           ids,
+			Marker_filter: marker_filter,
+			FilterOpts:    filterOpts,
+		},
+	}
+
+	data_ = &FindMarkersResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
 // The query executed by FindPerformerByName.
 const FindPerformerByName_Operation = `
 query FindPerformerByName ($name: String!) {
@@ -4417,6 +4756,46 @@ func FindSampleSceneCover(
 	}
 
 	data_ = &FindSampleSceneCoverResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by FindSavedMarkerFilters.
+const FindSavedMarkerFilters_Operation = `
+query FindSavedMarkerFilters {
+	findSavedFilters(mode: SCENE_MARKERS) {
+		... SavedFilterParts
+	}
+}
+fragment SavedFilterParts on SavedFilter {
+	id
+	name
+	mode
+	find_filter {
+		sort
+		direction
+	}
+	object_filter
+}
+`
+
+func FindSavedMarkerFilters(
+	ctx_ context.Context,
+	client_ graphql.Client,
+) (data_ *FindSavedMarkerFiltersResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "FindSavedMarkerFilters",
+		Query:  FindSavedMarkerFilters_Operation,
+	}
+
+	data_ = &FindSavedMarkerFiltersResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
