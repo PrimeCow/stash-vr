@@ -79,3 +79,16 @@ func TestMarkerFilter_WrongModeAndNilParts(t *testing.T) {
 		t.Errorf("want empty filter, got %+v", f)
 	}
 }
+
+// A criterion Stash wrote oddly (no modifier, no value) must skip the filter,
+// not panic: the converter runs in a goroutine that no HTTP recoverer covers.
+func TestMarkerFilter_MalformedCriterionIsAnErrorNotAPanic(t *testing.T) {
+	for _, obj := range []string{
+		`{"tags":{"value":{"items":[{"id":4}]}}}`,
+		`{"created_at":{"modifier":"GREATER_THAN","value":{}}}`,
+	} {
+		if _, err := SavedFilterToMarkerFilter(context.Background(), markerSaved(t, "title", obj)); err == nil {
+			t.Errorf("want error for %s", obj)
+		}
+	}
+}

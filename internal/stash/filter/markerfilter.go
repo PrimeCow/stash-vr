@@ -15,7 +15,15 @@ type MarkerFilter struct {
 	MarkerFilter gql.SceneMarkerFilterType
 }
 
-func SavedFilterToMarkerFilter(ctx context.Context, savedFilter gql.SavedFilterParts) (MarkerFilter, error) {
+func SavedFilterToMarkerFilter(ctx context.Context, savedFilter gql.SavedFilterParts) (_ MarkerFilter, err error) {
+	// The criterion parsers assume well-formed JSON; a malformed saved filter
+	// must skip that filter instead of taking the process down.
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("malformed marker filter: %v", r)
+		}
+	}()
+
 	if savedFilter.Mode != gql.FilterModeSceneMarkers {
 		return MarkerFilter{}, fmt.Errorf("unsupported filter mode (%s)", savedFilter.Mode)
 	}
