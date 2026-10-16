@@ -2,11 +2,13 @@ package heresphere
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 	"net/http"
 	"net/url"
+	"slices"
 	"stash-vr/internal/api/internal"
 	"stash-vr/internal/library"
 	"stash-vr/internal/stash"
@@ -33,6 +35,12 @@ func (h *httpHandler) indexHandler(w http.ResponseWriter, req *http.Request) {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to get sections")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+
+	if markerSections, err := h.libraryService.GetMarkerSections(ctx); err != nil {
+		log.Ctx(ctx).Warn().Err(err).Msg("failed to get marker sections, continuing without")
+	} else {
+		sections = slices.Concat(sections, markerSections)
 	}
 
 	go func() {
@@ -87,6 +95,11 @@ func (h *httpHandler) videoDataHandler(w http.ResponseWriter, req *http.Request)
 	if err != nil {
 		log.Ctx(ctx).Warn().Err(err).Msg("malformed videoId")
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if markerId, ok := library.ParseMarkerVideoId(videoId); ok {
+		h.markerVideoDataHandler(w, req, markerId)
 		return
 	}
 
@@ -262,6 +275,9 @@ func (h *httpHandler) eventsHandler(w http.ResponseWriter, req *http.Request) {
 
 	parts := strings.Split(ev.Id, "/")
 	videoId := parts[len(parts)-1]
+	if _, ok := library.ParseMarkerVideoId(videoId); ok {
+		return
+	}
 	vd, err := h.libraryService.GetScene(ctx, videoId, false)
 	if err != nil {
 		log.Ctx(ctx).Warn().Err(err).Msg("Failed to get scene from event")
@@ -295,4 +311,32 @@ type videoDataRequestDto struct {
 	Tags             *[]tagDto `json:"tags,omitempty"`
 	DeleteFile       *bool     `json:"deleteFile,omitempty"`
 	NeedsMediaSource *bool     `json:"needsMediaSource,omitempty"`
+}
+
+// markerVideoDataHandler is read-only: it never looks at the request body, so
+// ratings, tags or deleteFile sent for a marker can't reach a scene.
+func (h *httpHandler) markerVideoDataHandler(w http.ResponseWriter, req *http.Request, markerId string) {
+	ctx := req.Context()
+
+	mv, err := h.libraryService.GetMarker(ctx, markerId)
+	if errors.Is(err, library.ErrMarkerNotFound) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get marker")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	dto, err := buildMarkerVideoData(mv)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to build marker video data")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err := internal.WriteJson(ctx, w, dto); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("write")
+	}
 }
