@@ -25,6 +25,7 @@ It's lightweight, optionally configurable and has support for two-way sync.
   * Delete scenes
   * Funscript
   * Subtitles
+  * Marker browser: saved Stash marker filters show up as extra sections ("Markers: <filter name>"); a marker plays its scene from the marker's start
 * DeoVR
   * Markers(?)
 
@@ -132,6 +133,14 @@ Scene metadata is handled using `Video Tags` in HereSphere. Both for presentatio
   * Changes in HereSphere will sync to Stash
 
 Changes reflect in HereSphere when videos are re-opened.
+
+#### Marker browser
+Every saved Stash **marker** filter (Markers view in Stash) becomes a section named `Markers: <filter name>`, after the scene sections. Each entry is one marker: the thumbnail is the marker's preview, and playing it starts the scene at the marker. Pressing next in HereSphere moves to the next marker of that section, in the filter's sort order.
+
+* Marker entries are read-only (no rating/tag/delete/play-count changes).
+* Playback uses Stash's transcoding streams (needed to start at an offset), so Stash must be able to transcode your videos.
+* Markers have no end time in most libraries, so a marker plays until the end of its scene; press next to move on.
+* Marker filters count toward the link limit mentioned under [Scene count limits](#scene-count-limits-more-than-10000-links-generated).
 
 #### Favorites
 When the favorite-feature of HereSphere is first used Stash-VR will create a tag in Stash named according to `FAVORITE_TAG` (set in docker env., defaults to `FAVORITE`) and apply that tag to your scene.

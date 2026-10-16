@@ -8,11 +8,13 @@ import (
 )
 
 type Service struct {
-	StashClient graphql.Client
-	vdCache     map[string]*VideoData
-	muVdCache   sync.RWMutex
-	single      singleflight.Group
-	Stats       Stats
+	StashClient   graphql.Client
+	vdCache       map[string]*VideoData
+	muVdCache     sync.RWMutex
+	markerCache   map[string]*Marker
+	muMarkerCache sync.RWMutex
+	single        singleflight.Group
+	Stats         Stats
 
 	tagCache map[string]*Tag
 }
@@ -27,10 +29,12 @@ func NewService(client graphql.Client) *Service {
 	return &Service{
 		StashClient: client,
 		vdCache:     make(map[string]*VideoData),
+		markerCache: make(map[string]*Marker),
 	}
 }
 
 type Stats struct {
-	Links  int
-	Scenes int
+	Links       int
+	Scenes      int
+	MarkerLinks int
 }

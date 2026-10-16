@@ -172,3 +172,24 @@ fragment TagParts on Tag{
         sort_name
     }
 }
+
+query FindSavedMarkerFilters{
+    findSavedFilters(mode: SCENE_MARKERS){
+        ...SavedFilterParts
+    }
+}
+
+query FindMarkers(
+    $ids: [ID!], $marker_filter: SceneMarkerFilterType, $filterOpts: FindFilterType){
+    findSceneMarkers(ids: $ids, scene_marker_filter: $marker_filter, filter: $filterOpts){
+        scene_markers {
+            ...MarkerParts
+        }
+    }
+}
+
+fragment MarkerParts on SceneMarker{
+    id, seconds, title, stream, screenshot
+    primary_tag { name }
+    scene { id }
+}
