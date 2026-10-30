@@ -1,7 +1,7 @@
 package heresphere
 
 import (
-	"strings"
+	"net/url"
 	"testing"
 	"time"
 
@@ -21,25 +21,10 @@ func testScene(files ...*gql.ScenePartsFilesVideoFile) *library.VideoData {
 			{Url: "http://s/scene/7/stream", Mime_type: str("video/mp4"), Label: str("Direct stream")},
 			{Url: "http://s/scene/7/stream.mp4?apikey=k&resolution=ORIGINAL", Mime_type: str("video/mp4"), Label: str("MP4")},
 			{Url: "http://s/scene/7/stream.mp4?apikey=k&resolution=FULL_HD", Mime_type: str("video/mp4"), Label: str("MP4 Full HD (1080p)")},
+			{Url: "http://s/scene/7/stream.m3u8?apikey=k&resolution=ORIGINAL", Mime_type: str("application/vnd.apple.mpegurl"), Label: str("HLS")},
+			{Url: "http://s/scene/7/stream.m3u8?apikey=k&resolution=FULL_HD", Mime_type: str("application/vnd.apple.mpegurl"), Label: str("HLS Full HD (1080p)")},
 		},
 	}}
-}
-
-func TestWithStart(t *testing.T) {
-	for _, tc := range []struct {
-		in      string
-		seconds float64
-		want    string
-	}{
-		{"http://s/scene/7/stream.mp4?apikey=k&resolution=ORIGINAL", 933, "http://s/scene/7/stream.mp4?apikey=k&resolution=ORIGINAL&start=933"},
-		{"http://s/scene/7/stream.mp4", 12.5, "http://s/scene/7/stream.mp4?start=12.5"},
-		{"http://s/scene/7/stream.mp4?start=1&resolution=LOW", 40, "http://s/scene/7/stream.mp4?resolution=LOW&start=40"},
-	} {
-		got, err := withStart(tc.in, tc.seconds)
-		if err != nil || got != tc.want {
-			t.Errorf("withStart(%q, %v) = %q, %v; want %q", tc.in, tc.seconds, got, err, tc.want)
-		}
-	}
 }
 
 func TestMarkerTitle(t *testing.T) {
@@ -58,33 +43,22 @@ func TestMarkerTitle(t *testing.T) {
 	}
 }
 
-func TestMarkerDurationMs(t *testing.T) {
-	if got := markerDurationMs(100, 40); got != 60000 {
-		t.Errorf("got %v", got)
-	}
-	if got := markerDurationMs(100, 150); got != 0 {
-		t.Errorf("marker past end of scene must clamp to 0, got %v", got)
-	}
-}
-
 func TestBuildMarkerVideoData(t *testing.T) {
 	vd := testScene(&gql.ScenePartsFilesVideoFile{Basename: "a.mp4", Duration: 1000, Height: 2160})
 	m := &library.Marker{Id: "5", SceneId: "7", Seconds: 100.5, PrimaryTag: "Licking", Stream: "http://s/m/stream", Screenshot: "http://s/m/shot"}
 
-	dto, err := buildMarkerVideoData(&library.MarkerVideoData{Marker: m, Scene: vd})
+	dto, err := buildMarkerVideoData(&library.MarkerVideoData{Marker: m, Scene: vd}, "http://vr")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if dto.Title != "Licking – Scene A" || dto.Duration != 899500 {
+	if dto.Title != "Licking – Scene A" || dto.Duration != 1000000 {
 		t.Errorf("title=%q duration=%v", dto.Title, dto.Duration)
 	}
-	if len(dto.Media) != 1 || dto.Media[0].Name != "transcoding" || len(dto.Media[0].Sources) != 2 {
+	if len(dto.Media) != 1 || dto.Media[0].Name != "hls" || len(dto.Media[0].Sources) != 2 {
 		t.Fatalf("media = %+v", dto.Media)
 	}
-	for _, s := range dto.Media[0].Sources {
-		if !strings.Contains(s.Url, "start=100.5") {
-			t.Errorf("source %q lacks start offset", s.Url)
-		}
+	if got := dto.Media[0].Sources[1].Url; got != "http://vr/heresphere/m5/stream.m3u8?resolution=1080" {
+		t.Errorf("source url = %q", got)
 	}
 	if *dto.ThumbnailVideo != "http://s/m/stream" || *dto.ThumbnailImage != "http://s/m/shot" {
 		t.Errorf("thumbs = %v %v", *dto.ThumbnailVideo, *dto.ThumbnailImage)
@@ -95,8 +69,22 @@ func TestBuildMarkerVideoData(t *testing.T) {
 }
 
 func TestBuildMarkerVideoData_SceneWithoutFiles(t *testing.T) {
-	_, err := buildMarkerVideoData(&library.MarkerVideoData{Marker: &library.Marker{}, Scene: testScene()})
+	_, err := buildMarkerVideoData(&library.MarkerVideoData{Marker: &library.Marker{}, Scene: testScene()}, "http://vr")
 	if err == nil {
 		t.Fatal("want error, not panic, for a scene with no files")
+	}
+}
+
+func TestStartPlaylist(t *testing.T) {
+	upstream, _ := url.Parse("http://s:9999/scene/7/stream.m3u8?apikey=k&resolution=FULL_HD")
+	in := "#EXTM3U\n#EXT-X-VERSION:3\n#EXTINF:2.000000,\n/scene/7/stream.m3u8/0.ts?apikey=k&resolution=FULL_HD\n#EXT-X-ENDLIST\n"
+	want := "#EXTM3U\n#EXT-X-START:TIME-OFFSET=100.5,PRECISE=YES\n#EXT-X-VERSION:3\n#EXTINF:2.000000,\nhttp://s:9999/scene/7/stream.m3u8/0.ts?apikey=k&resolution=FULL_HD\n#EXT-X-ENDLIST\n"
+
+	got, err := startPlaylist([]byte(in), upstream, 100.5)
+	if err != nil || string(got) != want {
+		t.Errorf("got %q, %v\nwant %q", got, err, want)
+	}
+	if _, err := startPlaylist([]byte("<html>"), upstream, 1); err == nil {
+		t.Error("want error for a non-playlist body")
 	}
 }

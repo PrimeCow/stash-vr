@@ -138,8 +138,7 @@ Changes reflect in HereSphere when videos are re-opened.
 Every saved Stash **marker** filter (Markers view in Stash) becomes a section named `Markers: <filter name>`, after the scene sections. Each entry is one marker: the thumbnail is the marker's preview, and playing it starts the scene at the marker. Pressing next in HereSphere moves to the next marker of that section, in the filter's sort order.
 
 * Marker entries are read-only (no rating/tag/delete/play-count changes).
-* Playback uses Stash's transcoding streams (needed to start at an offset), so Stash must be able to transcode your videos.
-* Markers have no end time in most libraries, so a marker plays until the end of its scene; press next to move on.
+* Playback uses Stash's HLS stream through a playlist Stash-VR serves, asking the player to start at the marker. The whole scene stays seekable and the scene's markers show on the timeline. Stash must be able to transcode your videos.
 * Marker filters count toward the link limit mentioned under [Scene count limits](#scene-count-limits-more-than-10000-links-generated).
 
 #### Favorites

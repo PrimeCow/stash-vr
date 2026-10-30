@@ -130,3 +130,15 @@ func TestIndex_MarkerQueryFailureKeepsScenes(t *testing.T) {
 		t.Errorf("status %d, body %s", w.Code, w.Body.String())
 	}
 }
+
+func TestMarkerPlaylist_Routed(t *testing.T) {
+	stash := &fakeStash{}
+	h := Router(library.NewService(stash))
+
+	if w := do(t, h, http.MethodGet, "/m5/stream.m3u8?resolution=1080", ""); w.Code != http.StatusInternalServerError || !slices.Equal(stash.ops, []string{"FindMarkers"}) {
+		t.Errorf("status = %d ops = %v, want 500 after looking up the marker", w.Code, stash.ops)
+	}
+	if w := do(t, h, http.MethodGet, "/7/stream.m3u8?resolution=1080", ""); w.Code != http.StatusNotFound {
+		t.Errorf("scene id: status = %d, want 404", w.Code)
+	}
+}

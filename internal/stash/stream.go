@@ -33,10 +33,26 @@ func GetDirectStream(sp *gql.SceneParts) Stream {
 	}
 }
 func GetTranscodingStream(sp *gql.SceneParts) Stream {
-	mp4Sources := make([]Source, 0)
+	return Stream{
+		Name:    "transcoding",
+		Sources: sourcesByMime(sp, "video/mp4"),
+	}
+}
+
+// GetHLSStream is Stash's segmented stream: unlike the mp4 transcode it can be
+// seeked, as each segment is transcoded on request.
+func GetHLSStream(sp *gql.SceneParts) Stream {
+	return Stream{
+		Name:    "hls",
+		Sources: sourcesByMime(sp, "application/vnd.apple.mpegurl"),
+	}
+}
+
+func sourcesByMime(sp *gql.SceneParts, mime string) []Source {
+	sources := make([]Source, 0)
 	seenResolutions := make(map[int]struct{})
 	for _, stream := range sp.SceneStreams {
-		if strings.HasPrefix(*stream.Mime_type, "video/mp4") && *stream.Label != "Direct stream" {
+		if strings.HasPrefix(*stream.Mime_type, mime) && *stream.Label != "Direct stream" {
 			resolution, err := parseResolutionFromLabel(*stream.Label)
 			if err != nil {
 				resolution = sp.Files[0].Height
@@ -44,19 +60,15 @@ func GetTranscodingStream(sp *gql.SceneParts) Stream {
 			if _, seen := seenResolutions[resolution]; seen {
 				continue
 			}
-			mp4Sources = append(mp4Sources, Source{
+			sources = append(sources, Source{
 				Resolution: resolution,
 				Url:        stream.Url,
 			})
 			seenResolutions[resolution] = struct{}{}
 		}
 	}
-	slices.SortFunc(mp4Sources, func(a, b Source) int { return b.Resolution - a.Resolution })
-
-	return Stream{
-		Name:    "transcoding",
-		Sources: mp4Sources,
-	}
+	slices.SortFunc(sources, func(a, b Source) int { return b.Resolution - a.Resolution })
+	return sources
 }
 
 func parseResolutionFromLabel(label string) (int, error) {
