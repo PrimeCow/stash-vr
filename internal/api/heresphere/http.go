@@ -69,6 +69,12 @@ func (h *httpHandler) scanHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	baseUrl := internal.GetBaseUrl(req)
 
+	// before GetScenes: building sections resets the scene cache
+	sections, err := h.libraryService.GetSections(ctx)
+	if err != nil {
+		log.Ctx(ctx).Warn().Err(err).Msg("failed to get sections, scanning without filter tags")
+	}
+
 	vds, err := h.libraryService.GetScenes(ctx)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to get scenes")
@@ -76,7 +82,24 @@ func (h *httpHandler) scanHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	dto, err := buildScan(ctx, vds, baseUrl)
+	markers := map[string]*library.MarkerVideoData{}
+	if markerSections, err := h.libraryService.GetMarkerSections(ctx); err != nil {
+		log.Ctx(ctx).Warn().Err(err).Msg("failed to get marker sections, scanning without markers")
+	} else {
+		sections = slices.Concat(sections, markerSections)
+		for _, s := range markerSections {
+			for _, id := range s.Ids {
+				markerId, _ := library.ParseMarkerVideoId(id)
+				if mv, err := h.libraryService.GetMarker(ctx, markerId); err != nil {
+					log.Ctx(ctx).Warn().Err(err).Str("markerId", markerId).Msg("failed to get marker, skipping in scan")
+				} else {
+					markers[id] = mv
+				}
+			}
+		}
+	}
+
+	dto, err := buildScan(ctx, vds, markers, sections, baseUrl)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to build scan")
 		w.WriteHeader(http.StatusInternalServerError)

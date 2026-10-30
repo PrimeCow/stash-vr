@@ -2,6 +2,7 @@ package heresphere
 
 import (
 	"context"
+	"stash-vr/internal/api/internal"
 	"stash-vr/internal/library"
 	"stash-vr/internal/util"
 	"time"
@@ -27,13 +28,32 @@ type scanDataDto struct {
 	Tags         []tagDto `json:"tags,omitempty"`
 }
 
-func buildScan(ctx context.Context, vds map[string]*library.VideoData, baseUrl string) (*scanDocDto, error) {
-	scanDoc := scanDocDto{ScanData: make([]scanDataDto, 0, len(vds))}
+// buildScan lists scenes and markers, each tagged with the saved filters
+// (sections) it appears in, so HereSphere's generated tags can filter by them.
+func buildScan(ctx context.Context, vds map[string]*library.VideoData, markers map[string]*library.MarkerVideoData, sections []library.Section, baseUrl string) (*scanDocDto, error) {
+	filters := make(map[string][]tagDto)
+	for _, s := range sections {
+		for _, id := range s.Ids {
+			filters[id] = append(filters[id], tagDto{Name: internal.LegendFilter + seperator + s.Name})
+		}
+	}
+
+	scanDoc := scanDocDto{ScanData: make([]scanDataDto, 0, len(vds)+len(markers))}
 	for _, vd := range vds {
 		scanData := videoDataToScanDataDto(ctx, vd, baseUrl)
+		scanData.Tags = append(scanData.Tags, filters[scanData.id]...)
 		scanDoc.ScanData = append(scanDoc.ScanData, scanData)
 	}
-	log.Ctx(ctx).Debug().Int("scenes", len(scanDoc.ScanData)).Msg("/scan")
+	for id, mv := range markers {
+		scanDoc.ScanData = append(scanDoc.ScanData, scanDataDto{
+			id:        id,
+			Link:      getVideoDataUrl(baseUrl, id),
+			Title:     markerTitle(mv.Marker, mv.Scene.Title()),
+			DateAdded: mv.Scene.SceneParts.Created_at.Format(time.DateOnly),
+			Tags:      filters[id],
+		})
+	}
+	log.Ctx(ctx).Debug().Int("scenes", len(vds)).Int("markers", len(markers)).Msg("/scan")
 	return &scanDoc, nil
 }
 
