@@ -154,6 +154,7 @@ func (h *httpHandler) videoDataHandler(w http.ResponseWriter, req *http.Request)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	dto.Tags = append(dto.Tags, filterTags(h.libraryService.SectionNames(videoId))...)
 
 	if err := internal.WriteJson(ctx, w, dto); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("write")
@@ -205,7 +206,7 @@ func (h *httpHandler) processIncomingTags(ctx context.Context, videoId string, v
 
 		switch key {
 		case internal.LegendPerformer, internal.LegendSceneStudio, internal.LegendSceneGroup,
-			internal.LegendMetaResolution, internal.LegendSummary, internal.LegendSummaryId:
+			internal.LegendMetaResolution, internal.LegendSummary, internal.LegendSummaryId, internal.LegendFilter:
 			continue
 		case internal.LegendMetaOCount:
 			hasOCount = true
@@ -360,6 +361,7 @@ func (h *httpHandler) markerVideoDataHandler(w http.ResponseWriter, req *http.Re
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	dto.Tags = append(dto.Tags, filterTags(h.libraryService.SectionNames(library.MarkerVideoId(markerId)))...)
 
 	if err := internal.WriteJson(ctx, w, dto); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("write")

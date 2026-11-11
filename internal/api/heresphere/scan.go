@@ -30,28 +30,31 @@ type scanDataDto struct {
 
 // buildScan lists scenes and markers, each tagged with the saved filters
 // (sections) it appears in, so HereSphere's generated tags can filter by them.
+// Marker entries carry their scene's data (duration, tags) like scene entries.
 func buildScan(ctx context.Context, vds map[string]*library.VideoData, markers map[string]*library.MarkerVideoData, sections []library.Section, baseUrl string) (*scanDocDto, error) {
-	filters := make(map[string][]tagDto)
+	filters := make(map[string][]string)
 	for _, s := range sections {
 		for _, id := range s.Ids {
-			filters[id] = append(filters[id], tagDto{Name: internal.LegendFilter + seperator + s.Name})
+			filters[id] = append(filters[id], s.Name)
 		}
 	}
 
 	scanDoc := scanDocDto{ScanData: make([]scanDataDto, 0, len(vds)+len(markers))}
 	for _, vd := range vds {
 		scanData := videoDataToScanDataDto(ctx, vd, baseUrl)
-		scanData.Tags = append(scanData.Tags, filters[scanData.id]...)
+		scanData.Tags = append(scanData.Tags, filterTags(filters[scanData.id])...)
 		scanDoc.ScanData = append(scanDoc.ScanData, scanData)
 	}
 	for id, mv := range markers {
-		scanDoc.ScanData = append(scanDoc.ScanData, scanDataDto{
-			id:        id,
-			Link:      getVideoDataUrl(baseUrl, id),
-			Title:     markerTitle(mv.Marker, mv.Scene.Title()),
-			DateAdded: mv.Scene.SceneParts.Created_at.Format(time.DateOnly),
-			Tags:      filters[id],
-		})
+		if len(mv.Scene.SceneParts.Files) == 0 {
+			continue
+		}
+		scanData := videoDataToScanDataDto(ctx, mv.Scene, baseUrl)
+		scanData.id = id
+		scanData.Link = getVideoDataUrl(baseUrl, id)
+		scanData.Title = markerTitle(mv.Marker, mv.Scene.Title())
+		scanData.Tags = append(scanData.Tags, filterTags(filters[id])...)
+		scanDoc.ScanData = append(scanDoc.ScanData, scanData)
 	}
 	log.Ctx(ctx).Debug().Int("scenes", len(vds)).Int("markers", len(markers)).Msg("/scan")
 	return &scanDoc, nil
@@ -83,4 +86,13 @@ func videoDataToScanDataDto(ctx context.Context, vd *library.VideoData, baseUrl 
 		scanData.IsFavorite = util.Ptr(true)
 	}
 	return scanData
+}
+
+// filterTags names the saved filters a video is in, as Filter:<name> tags.
+func filterTags(sectionNames []string) []tagDto {
+	tags := make([]tagDto, len(sectionNames))
+	for i, name := range sectionNames {
+		tags[i] = tagDto{Name: internal.LegendFilter + seperator + name}
+	}
+	return tags
 }

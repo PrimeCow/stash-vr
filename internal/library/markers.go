@@ -80,6 +80,7 @@ func (libraryService *Service) GetMarkerSections(ctx context.Context) ([]Section
 		libraryService.markerCache = markers
 		libraryService.Stats.MarkerLinks = links
 		libraryService.muMarkerCache.Unlock()
+		libraryService.membership.setMarkers(sections)
 
 		if total := libraryService.Stats.Links + links; total > maxPlayerLinks {
 			log.Ctx(ctx).Warn().Int("links", total).Msg("Many links; HereSphere may struggle above ~10000, consider fewer filters")

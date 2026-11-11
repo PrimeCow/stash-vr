@@ -17,6 +17,8 @@ type Service struct {
 	Stats         Stats
 
 	tagCache map[string]*Tag
+
+	membership membership
 }
 
 func (libraryService *Service) snapshot() map[string]*VideoData {
