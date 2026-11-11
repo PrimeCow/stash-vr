@@ -21,6 +21,7 @@ func Router(libraryService *library.Service) http.Handler {
 
 	r.Post("/scan", internal.LogRoute("scan", httpHandler.scanHandler))
 	r.Post("/auth", http.NotFound)
+	r.Get("/{videoId}/stream.m3u8", internal.LogRoute("markerPlaylist", httpHandler.markerPlaylistHandler))
 	r.Handle("/{videoId}", internal.LogRoute("videoData", internal.LogVideoId(httpHandler.videoDataHandler)))
 	r.Post("/events/{videoId}", internal.LogRoute("events", httpHandler.eventsHandler))
 	return r

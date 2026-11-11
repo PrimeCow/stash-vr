@@ -49,6 +49,7 @@ func (libraryService *Service) GetSections(ctx context.Context) ([]Section, erro
 		}
 		libraryService.Stats.Scenes = len(libraryService.vdCache)
 		libraryService.muVdCache.Unlock()
+		libraryService.membership.setScenes(sections)
 
 		log.Ctx(ctx).Info().Int("sections", len(sections)).Int("links", libraryService.Stats.Links).
 			Int("scenes", libraryService.Stats.Scenes).

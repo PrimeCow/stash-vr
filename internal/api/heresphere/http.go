@@ -2,15 +2,19 @@ package heresphere
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
+	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"stash-vr/internal/api/internal"
 	"stash-vr/internal/library"
 	"stash-vr/internal/stash"
 	"stash-vr/internal/util"
+	"strconv"
 	"strings"
 )
 
@@ -33,6 +37,12 @@ func (h *httpHandler) indexHandler(w http.ResponseWriter, req *http.Request) {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to get sections")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+
+	if markerSections, err := h.libraryService.GetMarkerSections(ctx); err != nil {
+		log.Ctx(ctx).Warn().Err(err).Msg("failed to get marker sections, continuing without")
+	} else {
+		sections = slices.Concat(sections, markerSections)
 	}
 
 	go func() {
@@ -59,6 +69,12 @@ func (h *httpHandler) scanHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	baseUrl := internal.GetBaseUrl(req)
 
+	// before GetScenes: building sections resets the scene cache
+	sections, err := h.libraryService.GetSections(ctx)
+	if err != nil {
+		log.Ctx(ctx).Warn().Err(err).Msg("failed to get sections, scanning without filter tags")
+	}
+
 	vds, err := h.libraryService.GetScenes(ctx)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to get scenes")
@@ -66,7 +82,24 @@ func (h *httpHandler) scanHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	dto, err := buildScan(ctx, vds, baseUrl)
+	markers := map[string]*library.MarkerVideoData{}
+	if markerSections, err := h.libraryService.GetMarkerSections(ctx); err != nil {
+		log.Ctx(ctx).Warn().Err(err).Msg("failed to get marker sections, scanning without markers")
+	} else {
+		sections = slices.Concat(sections, markerSections)
+		for _, s := range markerSections {
+			for _, id := range s.Ids {
+				markerId, _ := library.ParseMarkerVideoId(id)
+				if mv, err := h.libraryService.GetMarker(ctx, markerId); err != nil {
+					log.Ctx(ctx).Warn().Err(err).Str("markerId", markerId).Msg("failed to get marker, skipping in scan")
+				} else {
+					markers[id] = mv
+				}
+			}
+		}
+	}
+
+	dto, err := buildScan(ctx, vds, markers, sections, baseUrl)
 	if err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to build scan")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -87,6 +120,11 @@ func (h *httpHandler) videoDataHandler(w http.ResponseWriter, req *http.Request)
 	if err != nil {
 		log.Ctx(ctx).Warn().Err(err).Msg("malformed videoId")
 		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if markerId, ok := library.ParseMarkerVideoId(videoId); ok {
+		h.markerVideoDataHandler(w, req, markerId, baseUrl)
 		return
 	}
 
@@ -116,6 +154,7 @@ func (h *httpHandler) videoDataHandler(w http.ResponseWriter, req *http.Request)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	dto.Tags = append(dto.Tags, filterTags(h.libraryService.SectionNames(videoId))...)
 
 	if err := internal.WriteJson(ctx, w, dto); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("write")
@@ -167,7 +206,7 @@ func (h *httpHandler) processIncomingTags(ctx context.Context, videoId string, v
 
 		switch key {
 		case internal.LegendPerformer, internal.LegendSceneStudio, internal.LegendSceneGroup,
-			internal.LegendMetaResolution, internal.LegendSummary, internal.LegendSummaryId:
+			internal.LegendMetaResolution, internal.LegendSummary, internal.LegendSummaryId, internal.LegendFilter:
 			continue
 		case internal.LegendMetaOCount:
 			hasOCount = true
@@ -262,6 +301,9 @@ func (h *httpHandler) eventsHandler(w http.ResponseWriter, req *http.Request) {
 
 	parts := strings.Split(ev.Id, "/")
 	videoId := parts[len(parts)-1]
+	if _, ok := library.ParseMarkerVideoId(videoId); ok {
+		return
+	}
 	vd, err := h.libraryService.GetScene(ctx, videoId, false)
 	if err != nil {
 		log.Ctx(ctx).Warn().Err(err).Msg("Failed to get scene from event")
@@ -295,4 +337,103 @@ type videoDataRequestDto struct {
 	Tags             *[]tagDto `json:"tags,omitempty"`
 	DeleteFile       *bool     `json:"deleteFile,omitempty"`
 	NeedsMediaSource *bool     `json:"needsMediaSource,omitempty"`
+}
+
+// markerVideoDataHandler is read-only: it never looks at the request body, so
+// ratings, tags or deleteFile sent for a marker can't reach a scene.
+func (h *httpHandler) markerVideoDataHandler(w http.ResponseWriter, req *http.Request, markerId string, baseUrl string) {
+	ctx := req.Context()
+
+	mv, err := h.libraryService.GetMarker(ctx, markerId)
+	if errors.Is(err, library.ErrMarkerNotFound) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get marker")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	dto, err := buildMarkerVideoData(mv, baseUrl)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to build marker video data")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	dto.Tags = append(dto.Tags, filterTags(h.libraryService.SectionNames(library.MarkerVideoId(markerId)))...)
+
+	if err := internal.WriteJson(ctx, w, dto); err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("write")
+	}
+}
+
+// markerPlaylistHandler proxies the HLS playlist of a marker's scene, starting
+// playback at the marker. Segments are fetched by the player directly from Stash.
+func (h *httpHandler) markerPlaylistHandler(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	markerId, ok := library.ParseMarkerVideoId(chi.URLParam(req, "videoId"))
+	resolution, err := strconv.Atoi(req.URL.Query().Get("resolution"))
+	if !ok || err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	mv, err := h.libraryService.GetMarker(ctx, markerId)
+	if errors.Is(err, library.ErrMarkerNotFound) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get marker")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	sources := stash.GetHLSStream(mv.Scene.SceneParts).Sources
+	i := slices.IndexFunc(sources, func(s stash.Source) bool { return s.Resolution == resolution })
+	if i < 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	upstream, err := url.Parse(stash.ApiKeyed(sources[i].Url))
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("parse hls url")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	body, err := fetch(ctx, upstream.String())
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Str("url", upstream.Redacted()).Msg("fetch hls playlist")
+		w.WriteHeader(http.StatusBadGateway)
+		return
+	}
+
+	playlist, err := startPlaylist(body, upstream, mv.Marker.Seconds)
+	if err != nil {
+		log.Ctx(ctx).Error().Err(err).Msg("rewrite hls playlist")
+		w.WriteHeader(http.StatusBadGateway)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
+	_, _ = w.Write(playlist)
+}
+
+func fetch(ctx context.Context, rawUrl string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("status %d", resp.StatusCode)
+	}
+	return io.ReadAll(resp.Body)
 }
